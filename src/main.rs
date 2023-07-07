@@ -29,16 +29,19 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    #[command(about = "List all bookmarks")]
+    #[command(alias = "l", about = "List all bookmarks")]
     List {
         #[arg(short, long, help = "Filter list by name fragment")]
         filter: Option<String>,
     },
-    #[command(about = "Purge all bookmarks whose paths no longer exist")]
+    #[command(alias = "p", about = "Purge all bookmarks whose paths no longer exist")]
     Purge,
-    #[command(about = "Get bookmark's path (use with cd and interpolation)")]
+    #[command(
+        alias = "g",
+        about = "Get bookmark's path (use with cd and interpolation)"
+    )]
     Get { bookmark: String },
-    #[command(about = "Remove given directory entry from bookmarks")]
+    #[command(alias = "r", about = "Remove given directory entry from bookmarks")]
     Remove { bookmark: String },
 }
 
