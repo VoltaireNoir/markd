@@ -126,10 +126,10 @@ fn list(dirs: &HashMap<String, String>, filter: Option<&String>) {
     if let Some(filter) = filter {
         dirs.filter(|(name, _)| name.contains(filter))
             .enumerate()
-            .for_each(|(i, (k, v))| println!("[{i}] {k}: {v}"));
+            .for_each(|(i, (k, v))| println!("[{}] {k}: {v}", i + 1));
     } else {
         dirs.enumerate()
-            .for_each(|(i, (k, v))| println!("[{i}] {k}: {v}"));
+            .for_each(|(i, (k, v))| println!("[{}] {k}: {v}", i + 1));
     }
 }
 
