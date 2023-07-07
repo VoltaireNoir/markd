@@ -162,6 +162,9 @@ fn purge(dirs: &mut HashMap<String, String>) -> Result<()> {
             to_remove.push(name.clone());
         }
     }
+    if to_remove.is_empty() {
+        return Ok(println!("{} Nothing to purge", "Info:".yellow().bold()));
+    }
     println!("{}", "Purged entries:".magenta().bold());
     for (i, entry) in to_remove.iter().enumerate() {
         let path = dirs.remove(entry).unwrap();
