@@ -146,8 +146,7 @@ impl Filters {
 
 fn list(bookmarks: &HashMap<String, String>, filters: Filters) {
     println!("{}", "Bookmarked directories:".green().bold());
-    let mut table = Builder::new();
-    table.set_header(["Index", "Name", "Path"]);
+    let mut table = new_table();
     if filters.any() {
         filtered_list(table, bookmarks, filters);
     } else {
@@ -173,6 +172,12 @@ fn filtered_list(mut table: Builder, bookmarks: &HashMap<String, String>, filter
         table.push_record([&(i + 1).to_string(), k, v]);
     });
     print_table(table);
+}
+
+fn new_table() -> Builder {
+    let mut table = Builder::new();
+    table.set_header(["Index", "Name", "Path"]);
+    table
 }
 
 fn print_table(table: Builder) {
@@ -212,11 +217,13 @@ fn purge(bookmarks: &mut HashMap<String, String>) -> Result<()> {
     if to_remove.is_empty() {
         return Ok(println!("{} Nothing to purge", "Info:".yellow().bold()));
     }
-    println!("{}", "Purged entries:".red().bold());
+    println!("{}", "Purged bookmarks:".red().bold());
+    let mut table = new_table();
     for (i, entry) in to_remove.iter().enumerate() {
         let path = bookmarks.remove(entry).unwrap();
-        println!("[{}] {entry}: {path}", i + 1);
+        table.push_record([&(i + 1).to_string(), entry, &path]);
     }
+    print_table(table);
     save_bookmarks(bookmarks)?;
     Ok(())
 }
