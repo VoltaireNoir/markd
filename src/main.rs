@@ -20,7 +20,7 @@ const DB_PATH: Lazy<PathBuf> = Lazy::new(db_path);
 #[command(version = "0.1.0")]
 #[command(about = "Bookmark directories for easy directory-hopping", long_about = None)]
 struct Cli {
-    #[arg(long, short, help = "Optional directory path")]
+    #[arg(long, short, help = "Optional directory path to bookmark")]
     path: Option<PathBuf>,
     #[arg(long, short, help = "Alias to use instead of dir name")]
     alias: Option<String>,
@@ -38,7 +38,7 @@ enum Commands {
         start: Option<String>,
         #[arg(short, long, help = "Filter list by ending char or fragment")]
         end: Option<String>,
-        #[arg(short, long, default_value_t = false, help = "Order list by path")]
+        #[arg(short, long, default_value_t = false, help = "Order list by paths")]
         path: bool,
     },
     #[command(alias = "p", about = "Purge all bookmarks whose paths no longer exist")]
@@ -258,7 +258,7 @@ fn save_bookmarks(bookmarks: &HashMap<String, String>) -> Result<()> {
 }
 
 fn db_path() -> PathBuf {
-    let mut home = home_dir().unwrap();
+    let mut home = home_dir().expect("failed to get home directory");
     home.push("bookmarks.json");
     home
 }
