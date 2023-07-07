@@ -212,7 +212,7 @@ fn purge(bookmarks: &mut HashMap<String, String>) -> Result<()> {
     if to_remove.is_empty() {
         return Ok(println!("{} Nothing to purge", "Info:".yellow().bold()));
     }
-    println!("{}", "Purged entries:".magenta().bold());
+    println!("{}", "Purged entries:".red().bold());
     for (i, entry) in to_remove.iter().enumerate() {
         let path = bookmarks.remove(entry).unwrap();
         println!("[{}] {entry}: {path}", i + 1);
