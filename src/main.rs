@@ -107,7 +107,7 @@ fn mark(
 
 fn update() -> bool {
     println!(
-        "{} direcotry name already exists in bookmarks.\nWould you like to update it?\nType y / yes to update, anything else to cancel",
+        "{} direcotry name already exists in bookmarks, would you like to update it?\nType y / yes to update, anything else to cancel.",
         "info:".yellow().bold(),
     );
     let mut res = String::new();
