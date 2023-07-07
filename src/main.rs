@@ -38,6 +38,8 @@ enum Commands {
         start: Option<String>,
         #[arg(short, long, help = "Filter list by ending char or fragment")]
         end: Option<String>,
+        #[arg(short, long, default_value_t = false, help = "Order list by path")]
+        path: bool,
     },
     #[command(alias = "p", about = "Purge all bookmarks whose paths no longer exist")]
     Purge,
@@ -56,9 +58,12 @@ fn main() -> Result<()> {
     let mut bookmarks = load_bookmarks()?;
     if let Some(cmd) = args.command {
         match cmd {
-            Commands::List { filter, start, end } => {
-                list(&bookmarks, Filters { filter, start, end })
-            }
+            Commands::List {
+                filter,
+                start,
+                end,
+                path,
+            } => list(&bookmarks, Filters { filter, start, end }, path),
             Commands::Purge => purge(&mut bookmarks)?,
             Commands::Get { bookmark } => get(&bookmarks, &bookmark)?,
             Commands::Remove { bookmark } => remove(&mut bookmarks, &bookmark)?,
@@ -144,11 +149,13 @@ impl Filters {
     }
 }
 
-fn list(bookmarks: &HashMap<String, String>, filters: Filters) {
+fn list(bookmarks: &HashMap<String, String>, filters: Filters, order_by_path: bool) {
     println!("{}", "Bookmarked directories:".green().bold());
     let mut table = new_table();
+    let mut bookmarks: Vec<_> = bookmarks.iter().collect();
+    bookmarks.sort_by_key(|(name, path)| if order_by_path { *path } else { *name });
     if filters.any() {
-        filtered_list(table, bookmarks, filters);
+        filtered_list(table, &mut bookmarks, filters);
     } else {
         bookmarks.iter().enumerate().for_each(|(i, (name, path))| {
             table.push_record([&(i + 1).to_string(), name, path]);
@@ -157,18 +164,17 @@ fn list(bookmarks: &HashMap<String, String>, filters: Filters) {
     }
 }
 
-fn filtered_list(mut table: Builder, bookmarks: &HashMap<String, String>, filters: Filters) {
-    let mut filtered: Vec<_> = bookmarks.iter().collect();
+fn filtered_list(mut table: Builder, bookmarks: &mut Vec<(&String, &String)>, filters: Filters) {
     if let Some(filter) = filters.filter.as_ref() {
-        filtered.retain(|(name, _)| name.contains(filter));
+        bookmarks.retain(|(name, _)| name.contains(filter));
     }
     if let Some(start) = filters.start.as_ref() {
-        filtered.retain(|(name, _)| name.starts_with(start));
+        bookmarks.retain(|(name, _)| name.starts_with(start));
     }
     if let Some(end) = filters.end.as_ref() {
-        filtered.retain(|(name, _)| name.ends_with(end));
+        bookmarks.retain(|(name, _)| name.ends_with(end));
     }
-    filtered.iter().enumerate().for_each(|(i, (k, v))| {
+    bookmarks.iter().enumerate().for_each(|(i, (k, v))| {
         table.push_record([&(i + 1).to_string(), k, v]);
     });
     print_table(table);
