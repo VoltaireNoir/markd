@@ -30,7 +30,10 @@ struct Cli {
 #[derive(Subcommand)]
 enum Commands {
     #[command(about = "List all bookmarks")]
-    List,
+    List {
+        #[arg(short, long, help = "Filter list by name fragment")]
+        filter: Option<String>,
+    },
     #[command(about = "Purge all bookmarks whose paths no longer exist")]
     Purge,
     #[command(about = "Get bookmark's path (use with cd and interpolation)")]
@@ -45,7 +48,7 @@ fn main() -> Result<()> {
     let mut dirs = load_dirs()?;
     if let Some(cmd) = args.command {
         match cmd {
-            Commands::List => list(&dirs),
+            Commands::List { filter } => list(&dirs, filter.as_ref()),
             Commands::Purge => purge(&mut dirs)?,
             Commands::Get { bookmark } => get(&dirs, &bookmark)?,
             Commands::Remove { bookmark } => remove(&mut dirs, &bookmark)?,
@@ -117,11 +120,17 @@ fn update() -> bool {
     }
 }
 
-fn list(dirs: &HashMap<String, String>) {
+fn list(dirs: &HashMap<String, String>, filter: Option<&String>) {
     println!("{}", "Bookmarked directories:".green().bold());
-    dirs.iter()
-        .enumerate()
-        .for_each(|(i, (k, v))| println!("[{i}] {k}: {v}"));
+    let dirs = dirs.iter();
+    if let Some(filter) = filter {
+        dirs.filter(|(name, _)| name.contains(filter))
+            .enumerate()
+            .for_each(|(i, (k, v))| println!("[{i}] {k}: {v}"));
+    } else {
+        dirs.enumerate()
+            .for_each(|(i, (k, v))| println!("[{i}] {k}: {v}"));
+    }
 }
 
 fn get(dirs: &HashMap<String, String>, bookmark: &str) -> Result<()> {
