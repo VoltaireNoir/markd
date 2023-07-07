@@ -19,9 +19,9 @@ const DB_PATH: Lazy<PathBuf> = Lazy::new(db_path);
 #[command(version = "0.1.0")]
 #[command(about = "Bookmark directories for easy directory-hopping", long_about = None)]
 struct Cli {
-    #[arg(long, short)]
-    project: Option<PathBuf>,
-    #[arg(long, short)]
+    #[arg(long, short, help = "Optional directory path")]
+    path: Option<PathBuf>,
+    #[arg(long, short, help = "Alias to use instead of dir name")]
     alias: Option<String>,
     #[command(subcommand)]
     command: Option<Commands>,
@@ -29,10 +29,14 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
+    #[command(about = "List all bookmarks")]
     List,
+    #[command(about = "Purge all bookmarks whose paths no longer exist")]
     Purge,
-    Get { project: String },
-    Remove { project: String },
+    #[command(about = "Get bookmark's path (use with cd and interpolation)")]
+    Get { bookmark: String },
+    #[command(about = "Remove given directory entry from bookmarks")]
+    Remove { bookmark: String },
 }
 
 fn main() -> Result<()> {
@@ -43,11 +47,11 @@ fn main() -> Result<()> {
         match cmd {
             Commands::List => list(&dirs),
             Commands::Purge => purge(&mut dirs)?,
-            Commands::Get { project } => get(&dirs, &project)?,
-            Commands::Remove { project } => remove(&mut dirs, &project)?,
+            Commands::Get { bookmark } => get(&dirs, &bookmark)?,
+            Commands::Remove { bookmark } => remove(&mut dirs, &bookmark)?,
         }
     } else {
-        mark(&mut dirs, args.project, args.alias)?;
+        mark(&mut dirs, args.path, args.alias)?;
     }
     Ok(())
 }
@@ -100,7 +104,7 @@ fn mark(
 
 fn update() -> bool {
     println!(
-        "{} direcotry name already exists in bookmarks.\nWould you like to update it?\nType y/yes to update or anything else to cancel",
+        "{} direcotry name already exists in bookmarks.\nWould you like to update it?\nType y / yes to update, anything else to cancel",
         "info:".yellow().bold(),
     );
     let mut res = String::new();
@@ -114,28 +118,28 @@ fn update() -> bool {
 }
 
 fn list(dirs: &HashMap<String, String>) {
-    println!("{}", "Bookmarked dirs:".green().bold());
+    println!("{}", "Bookmarked directories:".green().bold());
     dirs.iter()
         .enumerate()
         .for_each(|(i, (k, v))| println!("[{i}] {k}: {v}"));
 }
 
-fn get(dirs: &HashMap<String, String>, project: &str) -> Result<()> {
+fn get(dirs: &HashMap<String, String>, bookmark: &str) -> Result<()> {
     let path = dirs
-        .get(project)
-        .with_context(|| format!("{} is not in bookmarks", project))?;
+        .get(bookmark)
+        .with_context(|| format!("{} is not in bookmarks", bookmark))?;
     print!("{path}");
     Ok(())
 }
 
-fn remove(dirs: &mut HashMap<String, String>, project: &str) -> Result<()> {
-    dirs.remove(project)
-        .with_context(|| format!("{} is not in bookmarks", project))?;
+fn remove(dirs: &mut HashMap<String, String>, bookmark: &str) -> Result<()> {
+    dirs.remove(bookmark)
+        .with_context(|| format!("{} is not in bookmarks", bookmark))?;
     save_dirs(&dirs)?;
     println!(
         "{} {} {}",
         "Success:".green().bold(),
-        project.red(),
+        bookmark.red(),
         "removed from bookmarks"
     );
     Ok(())
