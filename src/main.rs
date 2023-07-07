@@ -10,6 +10,7 @@ use std::{
     panic::PanicInfo,
     path::{Path, PathBuf},
 };
+use tabled::{builder::Builder, settings::Style};
 
 const DB_PATH: Lazy<PathBuf> = Lazy::new(db_path);
 
@@ -33,6 +34,10 @@ enum Commands {
     List {
         #[arg(short, long, help = "Filter list by name fragment")]
         filter: Option<String>,
+        #[arg(short, long, help = "Filter list by starting char or fragment")]
+        start: Option<String>,
+        #[arg(short, long, help = "Filter list by ending char or fragment")]
+        end: Option<String>,
     },
     #[command(alias = "p", about = "Purge all bookmarks whose paths no longer exist")]
     Purge,
@@ -51,7 +56,9 @@ fn main() -> Result<()> {
     let mut bookmarks = load_bookmarks()?;
     if let Some(cmd) = args.command {
         match cmd {
-            Commands::List { filter } => list(&bookmarks, filter.as_ref()),
+            Commands::List { filter, start, end } => {
+                list(&bookmarks, Filters { filter, start, end })
+            }
             Commands::Purge => purge(&mut bookmarks)?,
             Commands::Get { bookmark } => get(&bookmarks, &bookmark)?,
             Commands::Remove { bookmark } => remove(&mut bookmarks, &bookmark)?,
@@ -123,19 +130,53 @@ fn update() -> bool {
     }
 }
 
-fn list(bookmarks: &HashMap<String, String>, filter: Option<&String>) {
-    println!("{}", "Bookmarked directories:".green().bold());
-    let bookmarks = bookmarks.iter();
-    if let Some(filter) = filter {
-        bookmarks
-            .filter(|(name, _)| name.contains(filter))
-            .enumerate()
-            .for_each(|(i, (k, v))| println!("[{}] {k}: {v}", i + 1));
-    } else {
-        bookmarks
-            .enumerate()
-            .for_each(|(i, (k, v))| println!("[{}] {k}: {v}", i + 1));
+struct Filters {
+    filter: Option<String>,
+    start: Option<String>,
+    end: Option<String>,
+}
+
+impl Filters {
+    fn any(&self) -> bool {
+        [&self.filter, &self.start, &self.end]
+            .iter()
+            .any(|f| f.is_some())
     }
+}
+
+fn list(bookmarks: &HashMap<String, String>, filters: Filters) {
+    println!("{}", "Bookmarked directories:".green().bold());
+    let mut table = Builder::new();
+    table.set_header(["Index", "Name", "Path"]);
+    if filters.any() {
+        filtered_list(table, bookmarks, filters);
+    } else {
+        bookmarks.iter().enumerate().for_each(|(i, (name, path))| {
+            table.push_record([&(i + 1).to_string(), name, path]);
+        });
+        print_table(table);
+    }
+}
+
+fn filtered_list(mut table: Builder, bookmarks: &HashMap<String, String>, filters: Filters) {
+    let mut filtered: Vec<_> = bookmarks.iter().collect();
+    if let Some(filter) = filters.filter.as_ref() {
+        filtered.retain(|(name, _)| name.contains(filter));
+    }
+    if let Some(start) = filters.start.as_ref() {
+        filtered.retain(|(name, _)| name.starts_with(start));
+    }
+    if let Some(end) = filters.end.as_ref() {
+        filtered.retain(|(name, _)| name.ends_with(end));
+    }
+    filtered.iter().enumerate().for_each(|(i, (k, v))| {
+        table.push_record([&(i + 1).to_string(), k, v]);
+    });
+    print_table(table);
+}
+
+fn print_table(table: Builder) {
+    println!("{}", table.build().with(Style::modern()).to_string());
 }
 
 fn get(bookmarks: &HashMap<String, String>, bookmark: &str) -> Result<()> {
