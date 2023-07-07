@@ -107,7 +107,7 @@ fn mark(
     };
     save_bookmarks(&bookmarks)?;
     let prompt = if msg.contains("cancelled") {
-        "info:".yellow().bold()
+        "Info:".yellow().bold()
     } else {
         "Success:".green().bold()
     };
@@ -118,7 +118,7 @@ fn mark(
 fn update() -> bool {
     println!(
         "{} direcotry name already exists in bookmarks, would you like to update it?\nType y / yes to update, anything else to cancel.",
-        "info:".yellow().bold(),
+        "Info:".yellow().bold(),
     );
     let mut res = String::new();
     io::stdin()
@@ -251,5 +251,5 @@ fn db_path() -> PathBuf {
 }
 
 fn panic_hook(info: &PanicInfo) {
-    eprintln!("{} {}", "error:".red().bold(), info)
+    eprintln!("{} {}", "Error:".red().bold(), info)
 }
