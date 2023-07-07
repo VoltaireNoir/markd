@@ -45,22 +45,22 @@ enum Commands {
 fn main() -> Result<()> {
     std::panic::set_hook(Box::new(panic_hook));
     let args = Cli::parse();
-    let mut dirs = load_dirs()?;
+    let mut bookmarks = load_bookmarks()?;
     if let Some(cmd) = args.command {
         match cmd {
-            Commands::List { filter } => list(&dirs, filter.as_ref()),
-            Commands::Purge => purge(&mut dirs)?,
-            Commands::Get { bookmark } => get(&dirs, &bookmark)?,
-            Commands::Remove { bookmark } => remove(&mut dirs, &bookmark)?,
+            Commands::List { filter } => list(&bookmarks, filter.as_ref()),
+            Commands::Purge => purge(&mut bookmarks)?,
+            Commands::Get { bookmark } => get(&bookmarks, &bookmark)?,
+            Commands::Remove { bookmark } => remove(&mut bookmarks, &bookmark)?,
         }
     } else {
-        mark(&mut dirs, args.path, args.alias)?;
+        mark(&mut bookmarks, args.path, args.alias)?;
     }
     Ok(())
 }
 
 fn mark(
-    dirs: &mut HashMap<String, String>,
+    bookmarks: &mut HashMap<String, String>,
     path: Option<PathBuf>,
     alias: Option<String>,
 ) -> Result<()> {
@@ -80,7 +80,7 @@ fn mark(
             .to_string(),
     );
 
-    let msg = match dirs.get_mut(&name) {
+    let msg = match bookmarks.get_mut(&name) {
         Some(val) => {
             if update() {
                 val.clear();
@@ -91,11 +91,11 @@ fn mark(
             }
         }
         None => {
-            dirs.insert(name.clone(), path);
+            bookmarks.insert(name.clone(), path);
             "bookmarked"
         }
     };
-    save_dirs(&dirs)?;
+    save_bookmarks(&bookmarks)?;
     let prompt = if msg.contains("cancelled") {
         "info:".yellow().bold()
     } else {
@@ -120,31 +120,34 @@ fn update() -> bool {
     }
 }
 
-fn list(dirs: &HashMap<String, String>, filter: Option<&String>) {
+fn list(bookmarks: &HashMap<String, String>, filter: Option<&String>) {
     println!("{}", "Bookmarked directories:".green().bold());
-    let dirs = dirs.iter();
+    let bookmarks = bookmarks.iter();
     if let Some(filter) = filter {
-        dirs.filter(|(name, _)| name.contains(filter))
+        bookmarks
+            .filter(|(name, _)| name.contains(filter))
             .enumerate()
             .for_each(|(i, (k, v))| println!("[{}] {k}: {v}", i + 1));
     } else {
-        dirs.enumerate()
+        bookmarks
+            .enumerate()
             .for_each(|(i, (k, v))| println!("[{}] {k}: {v}", i + 1));
     }
 }
 
-fn get(dirs: &HashMap<String, String>, bookmark: &str) -> Result<()> {
-    let path = dirs
+fn get(bookmarks: &HashMap<String, String>, bookmark: &str) -> Result<()> {
+    let path = bookmarks
         .get(bookmark)
         .with_context(|| format!("{} is not in bookmarks", bookmark))?;
     print!("{path}");
     Ok(())
 }
 
-fn remove(dirs: &mut HashMap<String, String>, bookmark: &str) -> Result<()> {
-    dirs.remove(bookmark)
+fn remove(bookmarks: &mut HashMap<String, String>, bookmark: &str) -> Result<()> {
+    bookmarks
+        .remove(bookmark)
         .with_context(|| format!("{} is not in bookmarks", bookmark))?;
-    save_dirs(&dirs)?;
+    save_bookmarks(&bookmarks)?;
     println!(
         "{} {} {}",
         "Success:".green().bold(),
@@ -154,9 +157,9 @@ fn remove(dirs: &mut HashMap<String, String>, bookmark: &str) -> Result<()> {
     Ok(())
 }
 
-fn purge(dirs: &mut HashMap<String, String>) -> Result<()> {
+fn purge(bookmarks: &mut HashMap<String, String>) -> Result<()> {
     let mut to_remove = vec![];
-    for (name, path) in dirs.iter() {
+    for (name, path) in bookmarks.iter() {
         let p: &Path = path.as_ref();
         if !p.is_dir() {
             to_remove.push(name.clone());
@@ -167,39 +170,39 @@ fn purge(dirs: &mut HashMap<String, String>) -> Result<()> {
     }
     println!("{}", "Purged entries:".magenta().bold());
     for (i, entry) in to_remove.iter().enumerate() {
-        let path = dirs.remove(entry).unwrap();
+        let path = bookmarks.remove(entry).unwrap();
         println!("[{}] {entry}: {path}", i + 1);
     }
-    save_dirs(dirs)?;
+    save_bookmarks(bookmarks)?;
     Ok(())
 }
 
-fn load_dirs() -> Result<HashMap<String, String>> {
+fn load_bookmarks() -> Result<HashMap<String, String>> {
     let mut file = OpenOptions::new()
         .read(true)
         .create(true)
         .write(true)
         .open(&*DB_PATH)
-        .context("failed to open $HOME/.dirs.json")?;
+        .context("failed to open $HOME/.bookmarks.json")?;
     let mut raw = String::new();
     file.read_to_string(&mut raw).unwrap();
-    let dirs = if !raw.is_empty() {
-        serde_json::from_str(&raw).context("failed to parse $HOME/.dirs.json")?
+    let bookmarks = if !raw.is_empty() {
+        serde_json::from_str(&raw).context("failed to parse $HOME/.bookmarks.json")?
     } else {
         HashMap::new()
     };
-    Ok(dirs)
+    Ok(bookmarks)
 }
 
-fn save_dirs(dirs: &HashMap<String, String>) -> Result<()> {
-    let json = serde_json::to_string_pretty(dirs).context("failed to serialize data")?;
-    std::fs::write(&*DB_PATH, json).context("failed to write to dirs.json")?;
+fn save_bookmarks(bookmarks: &HashMap<String, String>) -> Result<()> {
+    let json = serde_json::to_string_pretty(bookmarks).context("failed to serialize data")?;
+    std::fs::write(&*DB_PATH, json).context("failed to write to bookmarks.json")?;
     Ok(())
 }
 
 fn db_path() -> PathBuf {
     let mut home = home_dir().unwrap();
-    home.push("dirs.json");
+    home.push("bookmarks.json");
     home
 }
 
