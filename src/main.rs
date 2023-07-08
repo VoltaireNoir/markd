@@ -92,27 +92,18 @@ fn mark(
     path: Option<PathBuf>,
     alias: Option<String>,
 ) -> Result<()> {
-    let dir = if let Some(dir) = path {
-        match dir.try_exists() {
-            Ok(true) => dir
-                .is_dir()
-                .then_some(dir.canonicalize().context("failed to expand path")?)
-                .context("provided path is not a directory")?,
-            _ => bail!("invalid path provided"),
-        }
-    } else {
-        std::env::current_dir().context("failed to determine current directory")?
-    };
+    let dir = validate_or_default(path)?;
     let path = dir.to_string_lossy().to_string();
+    let name = alias
+        .unwrap_or(
+            dir.file_name()
+                .context("couldn't get dir name")?
+                .to_string_lossy()
+                .to_string(),
+        )
+        .to_lowercase();
 
-    let name = alias.unwrap_or(
-        dir.file_name()
-            .context("couldn't get dir name")?
-            .to_string_lossy()
-            .to_string(),
-    );
-
-    let msg = match bookmarks.get_mut(&name.to_lowercase()) {
+    let msg = match bookmarks.get_mut(&name) {
         Some(val) => {
             if update() {
                 val.clear();
@@ -123,7 +114,7 @@ fn mark(
             }
         }
         None => {
-            bookmarks.insert(name.to_lowercase(), path);
+            bookmarks.insert(name.clone(), path);
             "bookmarked"
         }
     };
@@ -135,6 +126,21 @@ fn mark(
     };
     println!("{} {} {}", prompt, name.magenta(), msg);
     Ok(())
+}
+
+fn validate_or_default(path: Option<PathBuf>) -> Result<PathBuf> {
+    let dir = if let Some(dir) = path {
+        match dir.try_exists() {
+            Ok(true) => dir
+                .is_dir()
+                .then_some(dir.canonicalize().context("failed to expand path")?)
+                .context("provided path is not a directory")?,
+            _ => bail!("invalid path provided"),
+        }
+    } else {
+        std::env::current_dir().context("failed to determine current directory")?
+    };
+    Ok(dir)
 }
 
 fn update() -> bool {
