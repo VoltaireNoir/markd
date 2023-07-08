@@ -1,8 +1,8 @@
 # markd
 Bookmark directories for easy directory-hopping in the terminal.
 
-![](https://github.com/VoltaireNoir/markd/blob/033206124d8c0108e541c3a28ed36fa586e9fcf5/screen1.png?raw=true)
-![](https://github.com/VoltaireNoir/markd/blob/033206124d8c0108e541c3a28ed36fa586e9fcf5/screen2.png?raw=true)
+![](https://github.com/VoltaireNoir/markd/blob/main/screen1.png?raw=true)
+![](https://github.com/VoltaireNoir/markd/blob/main/screen2.png?raw=true)
 
 All it takes is one command `markd` to bookmark your current directory, or use the `-p / --path` to specify custom path and `-a / --alias` to set a custom bookmark name. The CLI tool also provides the necessary functionality to search and clean your bookmarks. For example, the `purge` command will check all the paths and remove the ones that no longer exist, and the `list` command supports `--filter`, `--start` and `--end` for advanced searching.
 
