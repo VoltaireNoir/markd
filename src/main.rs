@@ -52,7 +52,16 @@ enum Commands {
     Remove { bookmark: String },
 }
 
-fn main() -> Result<()> {
+fn main() {
+    if let Err(err) = run() {
+        eprintln!("{} {err}\n", "Error:".red().bold());
+        eprintln!("{}", "Caused by:".yellow().bold());
+        err.chain().skip(1).for_each(|cause| eprintln!("{cause}"));
+        std::process::exit(1);
+    }
+}
+
+fn run() -> Result<()> {
     std::panic::set_hook(Box::new(panic_hook));
     let args = Cli::parse();
     let mut bookmarks = load_bookmarks()?;
