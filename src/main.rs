@@ -54,9 +54,13 @@ enum Commands {
 
 fn main() {
     if let Err(err) = run() {
-        eprintln!("{} {err}\n", "Error:".red().bold());
-        eprintln!("{}", "Caused by:".yellow().bold());
-        err.chain().skip(1).for_each(|cause| eprintln!("{cause}"));
+        eprintln!("{} {err}", "Error:".red().bold());
+        for (i, cause) in err.chain().skip(1).enumerate() {
+            if i == 0 {
+                eprintln!("\n{}", "Caused by:".yellow().bold());
+            }
+            eprintln!("({}) {cause}", i + 1);
+        }
         std::process::exit(1);
     }
 }
