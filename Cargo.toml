@@ -2,6 +2,7 @@
 name = "markd"
 description = "Bookmark directories for easy directory-hopping in the terminal"
 repository = 'https://github.com/voltaireNoir/markd'
+documentation = "https://github.com/VoltaireNoir/markd/tree/main#readme"
 categories = ["command-line-utilities", "filesystem", "development-tools"]
 keywords = ["cli", "utility", "bookmark", "cd", "terminal", "directories"]
 authors = ["Maaz Ahmed <mzahmed95@gmail.com>"]
