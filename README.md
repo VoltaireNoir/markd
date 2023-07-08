@@ -41,3 +41,6 @@ To make it work, simply add a function definition to your shell config file. Aft
       cd (markd g $Bookmark)
     }
     ```
+## Install
+- Using cargo: `cargo install markd`, ensure `$HOME/.cargo/bin` is in path.
+- Pre-built binary: download the appropriate pre-built binary from the release section, place the binary in path.
