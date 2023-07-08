@@ -45,7 +45,7 @@ enum Commands {
     Purge,
     #[command(
         alias = "g",
-        about = "Get bookmark's path (use with cd and interpolation)"
+        about = "Get bookmark's path (use with cd and command substitution)"
     )]
     Get { bookmark: String },
     #[command(alias = "r", about = "Remove given directory entry from bookmarks")]
