@@ -1,4 +1,4 @@
-use anyhow::{Context, Result};
+use anyhow::{bail, Context, Result};
 use clap::{Parser, Subcommand};
 use colored::Colorize;
 use dirs::home_dir;
@@ -89,9 +89,13 @@ fn mark(
     alias: Option<String>,
 ) -> Result<()> {
     let dir = if let Some(dir) = path {
-        dir.try_exists()
-            .and_then(|_| dir.canonicalize())
-            .context("Invalid path provied")?
+        match dir.try_exists() {
+            Ok(true) => dir
+                .is_dir()
+                .then_some(dir.canonicalize().context("failed to expand path")?)
+                .context("provided path is not a directory")?,
+            _ => bail!("invalid path provided"),
+        }
     } else {
         std::env::current_dir().context("failed to determine current directory")?
     };
