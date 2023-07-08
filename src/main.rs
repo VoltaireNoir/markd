@@ -95,7 +95,7 @@ fn mark(
             .to_string(),
     );
 
-    let msg = match bookmarks.get_mut(&name) {
+    let msg = match bookmarks.get_mut(&name.to_lowercase()) {
         Some(val) => {
             if update() {
                 val.clear();
@@ -106,7 +106,7 @@ fn mark(
             }
         }
         None => {
-            bookmarks.insert(name.clone(), path);
+            bookmarks.insert(name.to_lowercase(), path);
             "bookmarked"
         }
     };
