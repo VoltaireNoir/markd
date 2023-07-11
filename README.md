@@ -1,4 +1,3 @@
-# markd
 <div align="center">
 
 [![Rust](https://github.com/VoltaireNoir/blight/actions/workflows/rust.yml/badge.svg)](https://github.com/VoltaireNoir/markd/actions/workflows/rust.yml)
@@ -7,6 +6,8 @@
 ![License](https://img.shields.io/crates/l/markd)
 
 </div>
+
+# markd
 Bookmark directories for easy directory-hopping in the terminal.
 
 ![](https://github.com/VoltaireNoir/markd/blob/main/screen1.png?raw=true)
