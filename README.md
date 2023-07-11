@@ -1,8 +1,8 @@
 <div align="center">
 
-[![Rust](https://github.com/VoltaireNoir/blight/actions/workflows/rust.yml/badge.svg)](https://github.com/VoltaireNoir/markd/actions/workflows/rust.yml)
-[![Crates.io](https://img.shields.io/crates/v/blight)](https://crates.io/crates/markd)
-[![Downloads](https://img.shields.io/crates/d/blight)](https://crates.io/crates/markd)
+[![Rust](https://github.com/VoltaireNoir/markd/actions/workflows/rust.yml/badge.svg)](https://github.com/VoltaireNoir/markd/actions/workflows/rust.yml)
+[![Crates.io](https://img.shields.io/crates/v/markd)](https://crates.io/crates/markd)
+[![Downloads](https://img.shields.io/crates/d/markd)](https://crates.io/crates/markd)
 ![License](https://img.shields.io/crates/l/markd)
 
 </div>
