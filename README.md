@@ -1,4 +1,12 @@
 # markd
+<div align="center">
+
+[![Rust](https://github.com/VoltaireNoir/blight/actions/workflows/rust.yml/badge.svg)](https://github.com/VoltaireNoir/markd/actions/workflows/rust.yml)
+[![Crates.io](https://img.shields.io/crates/v/blight)](https://crates.io/crates/markd)
+[![Downloads](https://img.shields.io/crates/d/blight)](https://crates.io/crates/markd)
+![License](https://img.shields.io/crates/l/markd)
+
+</div>
 Bookmark directories for easy directory-hopping in the terminal.
 
 ![](https://github.com/VoltaireNoir/markd/blob/main/screen1.png?raw=true)
