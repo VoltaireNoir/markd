@@ -13,6 +13,7 @@ use std::{
 use tabled::{builder::Builder, settings::Style};
 
 const DB_PATH: Lazy<PathBuf> = Lazy::new(db_path);
+const CLIPNAME: &'static str = "markd-temp";
 
 #[derive(Parser)]
 #[command(name = "Markd")]
@@ -47,7 +48,16 @@ enum Commands {
         alias = "g",
         about = "Get bookmark's path (use with cd and command substitution)"
     )]
-    Get { bookmark: String },
+    Get {
+        #[arg(default_value_t = String::from(CLIPNAME))]
+        bookmark: String,
+    },
+    #[command(
+        alias = "c",
+        about = "Save temp entry for quick access with `markd get` or `goto`",
+        long_about = "Save current or provided directory to 'markd-temp' entry for quick switching. The saved entry will be used when no bookmark name is provided to `markd get` command"
+    )]
+    Clip,
     #[command(alias = "r", about = "Remove given directory entry from bookmarks")]
     Remove { bookmark: String },
 }
@@ -79,6 +89,7 @@ fn run() -> Result<()> {
             } => list(&bookmarks, Filters { filter, start, end }, path),
             Commands::Purge => purge(&mut bookmarks)?,
             Commands::Get { bookmark } => get(&bookmarks, &bookmark)?,
+            Commands::Clip => mark(&mut bookmarks, args.path, Some(CLIPNAME.into()))?,
             Commands::Remove { bookmark } => remove(&mut bookmarks, &bookmark)?,
         }
     } else {
@@ -105,7 +116,7 @@ fn mark(
 
     let msg = match bookmarks.get_mut(&name) {
         Some(val) => {
-            if update() {
+            if name == CLIPNAME || update() {
                 val.clear();
                 val.push_str(&path);
                 "bookmark entry updated"
