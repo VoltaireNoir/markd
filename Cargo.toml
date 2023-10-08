@@ -7,7 +7,7 @@ categories = ["command-line-utilities", "filesystem", "development-tools"]
 keywords = ["cli", "bookmark", "cd", "terminal", "directories"]
 authors = ["Maaz Ahmed <mzahmed95@gmail.com>"]
 license = "MIT"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 exclude = ["*.png", ".github/workflows"]
 
