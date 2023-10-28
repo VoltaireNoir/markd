@@ -74,6 +74,11 @@ enum Commands {
         about = "Generate required config for 'goto' command shell support"
     )]
     Shell { stype: Shell },
+    #[command(
+        about = "Migrate old bookmarks.json to the new bookmarks.toml",
+        long_about = "markd now uses TOML format for storing bookmarks instead of the old JSON format. This command helps you migrate your old bookmarks to the new file.\nNote: This command will be removed in the future releases."
+    )]
+    Migrate,
 }
 
 #[derive(ValueEnum, Clone, Copy)]
@@ -114,6 +119,7 @@ fn run() -> Result<()> {
             Commands::Clip => mark(&mut bookmarks, args.path, Some(CLIPNAME.into()))?,
             Commands::Remove { bookmark } => remove(&mut bookmarks, &bookmark)?,
             Commands::Shell { stype } => shell(stype),
+            Commands::Migrate => migrate()?,
         }
     } else {
         mark(&mut bookmarks, args.path, args.alias)?;
@@ -292,31 +298,26 @@ fn purge(bookmarks: &mut HashMap<String, String>) -> Result<()> {
 }
 
 fn load_bookmarks() -> Result<HashMap<String, String>> {
-    let mut file = OpenOptions::new()
+    let mut file = std::fs::File::options()
         .read(true)
         .create(true)
         .write(true)
-        .open(&*DB_PATH)
-        .context("failed to open $HOME/.bookmarks.json")?;
+        .open(DB_PATH.as_path())?;
     let mut raw = String::new();
-    file.read_to_string(&mut raw).unwrap();
-    let bookmarks = if !raw.is_empty() {
-        serde_json::from_str(&raw).context("failed to parse $HOME/.bookmarks.json")?
-    } else {
-        HashMap::new()
-    };
-    Ok(bookmarks)
+    file.read_to_string(&mut raw)
+        .context("failed to read $HOME/bookmarks.toml")?;
+    Ok(toml::from_str(&raw).context("failed to parse $HOME/.bookmarks.toml")?)
 }
 
 fn save_bookmarks(bookmarks: &HashMap<String, String>) -> Result<()> {
-    let json = serde_json::to_string_pretty(bookmarks).context("failed to serialize data")?;
-    std::fs::write(&*DB_PATH, json).context("failed to write to bookmarks.json")?;
+    let toml = toml::to_string_pretty(bookmarks).context("failed to serialize data")?;
+    std::fs::write(DB_PATH.as_path(), toml).context("failed to write to bookmarks.toml")?;
     Ok(())
 }
 
 fn db_path() -> PathBuf {
     let mut home = home_dir().expect("failed to get home directory");
-    home.push("bookmarks.json");
+    home.push("bookmarks.toml");
     home
 }
 
@@ -333,4 +334,21 @@ fn shell(stype: Shell) {
             Shell::Powershell => POWERSHELL,
         }
     )
+}
+
+fn migrate() -> Result<()> {
+    let file = OpenOptions::new()
+        .read(true)
+        .create(true)
+        .write(true)
+        .open(DB_PATH.with_file_name("bookmarks.json"))
+        .context("failed to open $HOME/bookmarks.json")?;
+
+    let old_data: HashMap<String, String> =
+        serde_json::from_reader(file).context("failed to parse bookmarks.json")?;
+    let toml =
+        toml::to_string_pretty(&old_data).context("failed to convert old bookmarks to TOML")?;
+    std::fs::write(DB_PATH.as_path(), toml).context("Failed to write to bookmarks.toml")?;
+    println!("{} migration complete", "Success:".green().bold());
+    Ok(())
 }
