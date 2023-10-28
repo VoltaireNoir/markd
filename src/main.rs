@@ -218,16 +218,16 @@ fn list(bookmarks: &HashMap<String, String>, filters: Filters, order_by_path: bo
     let mut bookmarks: Vec<_> = bookmarks.iter().collect();
     bookmarks.sort_by_key(|(name, path)| if order_by_path { *path } else { *name });
     if filters.any() {
-        filtered_list(table, &mut bookmarks, filters);
-    } else {
-        bookmarks.iter().enumerate().for_each(|(i, (name, path))| {
-            table.push_record([&(i + 1).to_string(), name, path]);
-        });
-        print_table(table);
+        filter_list(&mut bookmarks, filters);
     }
+    bookmarks.iter().for_each(|(name, path)| {
+        table.push_record([*name, *path]);
+    });
+    print_table(table);
 }
 
-fn filtered_list(mut table: Builder, bookmarks: &mut Vec<(&String, &String)>, filters: Filters) {
+#[inline]
+fn filter_list(bookmarks: &mut Vec<(&String, &String)>, filters: Filters) {
     if let Some(filter) = filters.filter.as_ref() {
         bookmarks.retain(|(name, _)| name.contains(filter));
     }
@@ -237,20 +237,16 @@ fn filtered_list(mut table: Builder, bookmarks: &mut Vec<(&String, &String)>, fi
     if let Some(end) = filters.end.as_ref() {
         bookmarks.retain(|(name, _)| name.ends_with(end));
     }
-    bookmarks.iter().enumerate().for_each(|(i, (k, v))| {
-        table.push_record([&(i + 1).to_string(), k, v]);
-    });
-    print_table(table);
 }
 
 fn new_table() -> Builder {
     let mut table = Builder::new();
-    table.set_header(["Index", "Name", "Path"]);
+    table.set_header(["Name", "Path"]);
     table
 }
 
 fn print_table(table: Builder) {
-    println!("{}", table.build().with(Style::modern()).to_string());
+    println!("{}", table.index().build().with(Style::rounded()));
 }
 
 fn get(bookmarks: &HashMap<String, String>, bookmark: &str) -> Result<()> {
@@ -288,9 +284,9 @@ fn purge(bookmarks: &mut HashMap<String, String>) -> Result<()> {
     }
     println!("{}", "Purged bookmarks:".red().bold());
     let mut table = new_table();
-    for (i, entry) in to_remove.iter().enumerate() {
+    for entry in to_remove.iter() {
         let path = bookmarks.remove(entry).unwrap();
-        table.push_record([&(i + 1).to_string(), entry, &path]);
+        table.push_record([entry, &path]);
     }
     print_table(table);
     save_bookmarks(bookmarks)?;
