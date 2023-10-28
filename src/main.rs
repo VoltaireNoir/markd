@@ -1,5 +1,5 @@
 use anyhow::{bail, Context, Result};
-use clap::{Parser, Subcommand};
+use clap::{Parser, Subcommand, ValueEnum};
 use colored::Colorize;
 use dirs::home_dir;
 use once_cell::unsync::Lazy;
@@ -14,6 +14,15 @@ use tabled::{builder::Builder, settings::Style};
 
 const DB_PATH: Lazy<PathBuf> = Lazy::new(db_path);
 const CLIPNAME: &'static str = "markd-temp";
+const ZSH_BASH: &str = r"goto() {
+    cd $(markd g $1);
+}";
+const FISH: &str = r"function goto
+    cd $(markd g $argv)
+end";
+const POWERSHELL: &str = r"function goto([string]$Bookmark) {
+    cd (markd g $Bookmark)
+}";
 
 #[derive(Parser)]
 #[command(name = "Markd")]
@@ -60,6 +69,19 @@ enum Commands {
     Clip,
     #[command(alias = "r", about = "Remove given directory entry from bookmarks")]
     Remove { bookmark: String },
+    #[command(
+        alias = "s",
+        about = "Generate required config for 'goto' command shell support"
+    )]
+    Shell { stype: Shell },
+}
+
+#[derive(ValueEnum, Clone, Copy)]
+enum Shell {
+    Fish,
+    Zsh,
+    Bash,
+    Powershell,
 }
 
 fn main() {
@@ -91,6 +113,7 @@ fn run() -> Result<()> {
             Commands::Get { bookmark } => get(&bookmarks, &bookmark)?,
             Commands::Clip => mark(&mut bookmarks, args.path, Some(CLIPNAME.into()))?,
             Commands::Remove { bookmark } => remove(&mut bookmarks, &bookmark)?,
+            Commands::Shell { stype } => shell(stype),
         }
     } else {
         mark(&mut bookmarks, args.path, args.alias)?;
@@ -299,4 +322,15 @@ fn db_path() -> PathBuf {
 
 fn panic_hook(info: &PanicInfo) {
     eprintln!("{} {}", "Error:".red().bold(), info)
+}
+
+fn shell(stype: Shell) {
+    println!(
+        "{}",
+        match stype {
+            Shell::Fish => FISH,
+            Shell::Zsh | Shell::Bash => ZSH_BASH,
+            Shell::Powershell => POWERSHELL,
+        }
+    )
 }
