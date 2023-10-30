@@ -2,7 +2,7 @@ use anyhow::{bail, Context, Result};
 use clap::{Parser, Subcommand, ValueEnum};
 use colored::Colorize;
 use dirs::home_dir;
-use once_cell::unsync::Lazy;
+use once_cell::sync::Lazy;
 use std::{
     collections::HashMap,
     fs::OpenOptions,
@@ -12,8 +12,8 @@ use std::{
 };
 use tabled::{builder::Builder, settings::Style};
 
-const DB_PATH: Lazy<PathBuf> = Lazy::new(db_path);
-const CLIPNAME: &'static str = "markd-temp";
+static DB_PATH: Lazy<PathBuf> = Lazy::new(db_path);
+const CLIPNAME: &str = "markd-temp";
 const ZSH_BASH: &str = r"goto() {
     cd $(markd g $1);
 }";
