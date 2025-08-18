@@ -14,14 +14,35 @@ use tabled::{builder::Builder, settings::Style};
 
 static DB_PATH: Lazy<PathBuf> = Lazy::new(db_path);
 const CLIPNAME: &str = "markd-temp";
-const ZSH_BASH: &str = r"goto() {
-    cd $(markd g $1);
-}";
-const FISH: &str = r"function goto
-    cd $(markd g $argv)
-end";
+const ZSH_BASH: &str = r#"goto() {
+    if [[ $# -eq 0 && -n $(command -v fzf) ]]; then
+        dir=$(markd list --plain | fzf | awk -F: '{ print $1 }')
+        if [[ -n "$dir" ]]; then
+            cd "$(markd g --failsafe "$dir")"
+        fi
+    else
+        cd "$(markd g --failsafe "$1")"
+    fi
+}"#;
+const FISH: &str = r#"function goto
+    if test (count $argv) -eq 0; and type -q fzf
+        set -f dir (markd list --plain | fzf | awk -F: '{ print $1 }')
+        if test -n "$dir"
+            cd $(markd g --failsafe $dir)
+        end
+    else
+        cd $(markd g --failsafe $argv)
+    end
+end"#;
 const POWERSHELL: &str = r"function goto([string]$Bookmark) {
-    cd (markd g $Bookmark)
+    if (-not $Bookmark -and (Get-Command fzf -ErrorAction SilentlyContinue)) {
+        $dir = markd list --plain | fzf | ForEach-Object { ($_ -split ':')[0] }
+        if ([string]::IsNullOrWhiteSpace($dir) -eq $false) {
+            Set-Location (markd g --failsafe $dir)
+        }
+    } else {
+        Set-Location (markd g --failsafe $Bookmark)
+    }
 }";
 
 #[derive(Parser)]
