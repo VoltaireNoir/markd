@@ -67,6 +67,13 @@ enum Commands {
     Get {
         #[arg(default_value_t = String::from(CLIPNAME))]
         bookmark: String,
+        #[arg(
+            short,
+            long,
+            default_value_t = false,
+            help = "Return current working directory on failure"
+        )]
+        failsafe: bool,
     },
     #[command(
         alias = "c",
@@ -123,7 +130,7 @@ fn run() -> Result<()> {
                 plain,
             } => list(&bookmarks, Filters { filter, start, end }, path, plain),
             Commands::Purge => purge(&mut bookmarks)?,
-            Commands::Get { bookmark } => get(&bookmarks, &bookmark)?,
+            Commands::Get { bookmark, failsafe } => get(&bookmarks, &bookmark, failsafe)?,
             Commands::Clip => mark(&mut bookmarks, args.path, Some(CLIPNAME.into()))?,
             Commands::Remove { bookmark } => remove(&mut bookmarks, &bookmark)?,
             Commands::Shell { stype } => shell(stype),
@@ -262,11 +269,21 @@ fn print_table(table: Builder) {
     println!("{}", table.index().build().with(Style::rounded()));
 }
 
-fn get(bookmarks: &HashMap<String, String>, bookmark: &str) -> Result<()> {
+fn get(bookmarks: &HashMap<String, String>, bookmark: &str, failsafe: bool) -> Result<()> {
     let path = bookmarks
         .get(bookmark)
-        .with_context(|| format!("{} is not in bookmarks", bookmark))?;
-    print!("{path}");
+        .with_context(|| format!("{} is not in bookmarks", bookmark));
+    match path {
+        Ok(path) => print!("{path}"),
+        Err(err) => {
+            if failsafe {
+                let cwd =
+                    std::env::current_dir().context("could not get current working directory")?;
+                print!("{path}", path = cwd.display());
+            }
+            return Err(err);
+        }
+    }
     Ok(())
 }
 
