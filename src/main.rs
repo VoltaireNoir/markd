@@ -48,6 +48,13 @@ enum Commands {
         start: Option<String>,
         #[arg(short, long, help = "Filter list by ending char or fragment")]
         end: Option<String>,
+        #[arg(
+            short,
+            long,
+            default_value_t = false,
+            help = "Print info as plain text instead of a formatted table"
+        )]
+        plain: bool,
         #[arg(short, long, default_value_t = false, help = "Order list by paths")]
         path: bool,
     },
@@ -113,7 +120,8 @@ fn run() -> Result<()> {
                 start,
                 end,
                 path,
-            } => list(&bookmarks, Filters { filter, start, end }, path),
+                plain,
+            } => list(&bookmarks, Filters { filter, start, end }, path, plain),
             Commands::Purge => purge(&mut bookmarks)?,
             Commands::Get { bookmark } => get(&bookmarks, &bookmark)?,
             Commands::Clip => mark(&mut bookmarks, args.path, Some(CLIPNAME.into()))?,
@@ -212,14 +220,19 @@ impl Filters {
     }
 }
 
-fn list(bookmarks: &HashMap<String, String>, filters: Filters, order_by_path: bool) {
-    println!("{}", "Bookmarked directories:".green().bold());
+fn list(bookmarks: &HashMap<String, String>, filters: Filters, order_by_path: bool, plain: bool) {
     let mut table = new_table();
     let mut bookmarks: Vec<_> = bookmarks.iter().collect();
     bookmarks.sort_by_key(|(name, path)| if order_by_path { *path } else { *name });
     if filters.any() {
         filter_list(&mut bookmarks, filters);
     }
+    if plain {
+        return bookmarks
+            .iter()
+            .for_each(|(name, path)| println!("{name}:{path}"));
+    }
+    println!("{}", "Bookmarked directories:".green().bold());
     bookmarks.iter().for_each(|(name, path)| {
         table.push_record([*name, *path]);
     });
