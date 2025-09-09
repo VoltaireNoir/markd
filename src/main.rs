@@ -14,14 +14,35 @@ use tabled::{builder::Builder, settings::Style};
 
 static DB_PATH: Lazy<PathBuf> = Lazy::new(db_path);
 const CLIPNAME: &str = "markd-temp";
-const ZSH_BASH: &str = r"goto() {
-    cd $(markd g $1);
-}";
-const FISH: &str = r"function goto
-    cd $(markd g $argv)
-end";
+const ZSH_BASH: &str = r#"goto() {
+    if [[ $# -eq 0 && -n $(command -v fzf) ]]; then
+        dir=$(markd list --plain | fzf | awk -F: '{ print $1 }')
+        if [[ -n "$dir" ]]; then
+            cd "$(markd g --failsafe "$dir")"
+        fi
+    else
+        cd "$(markd g --failsafe "$1")"
+    fi
+}"#;
+const FISH: &str = r#"function goto
+    if test (count $argv) -eq 0; and type -q fzf
+        set -f dir (markd list --plain | fzf | awk -F: '{ print $1 }')
+        if test -n "$dir"
+            cd $(markd g --failsafe $dir)
+        end
+    else
+        cd $(markd g --failsafe $argv)
+    end
+end"#;
 const POWERSHELL: &str = r"function goto([string]$Bookmark) {
-    cd (markd g $Bookmark)
+    if (-not $Bookmark -and (Get-Command fzf -ErrorAction SilentlyContinue)) {
+        $dir = markd list --plain | fzf | ForEach-Object { ($_ -split ':')[0] }
+        if ([string]::IsNullOrWhiteSpace($dir) -eq $false) {
+            Set-Location (markd g --failsafe $dir)
+        }
+    } else {
+        Set-Location (markd g --failsafe $Bookmark)
+    }
 }";
 
 #[derive(Parser)]
@@ -48,6 +69,13 @@ enum Commands {
         start: Option<String>,
         #[arg(short, long, help = "Filter list by ending char or fragment")]
         end: Option<String>,
+        #[arg(
+            short,
+            long,
+            default_value_t = false,
+            help = "Print info as plain text instead of a formatted table"
+        )]
+        plain: bool,
         #[arg(short, long, default_value_t = false, help = "Order list by paths")]
         path: bool,
     },
@@ -60,6 +88,13 @@ enum Commands {
     Get {
         #[arg(default_value_t = String::from(CLIPNAME))]
         bookmark: String,
+        #[arg(
+            short,
+            long,
+            default_value_t = false,
+            help = "Return current working directory on failure"
+        )]
+        failsafe: bool,
     },
     #[command(
         alias = "c",
@@ -113,9 +148,10 @@ fn run() -> Result<()> {
                 start,
                 end,
                 path,
-            } => list(&bookmarks, Filters { filter, start, end }, path),
+                plain,
+            } => list(&bookmarks, Filters { filter, start, end }, path, plain),
             Commands::Purge => purge(&mut bookmarks)?,
-            Commands::Get { bookmark } => get(&bookmarks, &bookmark)?,
+            Commands::Get { bookmark, failsafe } => get(&bookmarks, &bookmark, failsafe)?,
             Commands::Clip => mark(&mut bookmarks, args.path, Some(CLIPNAME.into()))?,
             Commands::Remove { bookmark } => remove(&mut bookmarks, &bookmark)?,
             Commands::Shell { stype } => shell(stype),
@@ -212,14 +248,19 @@ impl Filters {
     }
 }
 
-fn list(bookmarks: &HashMap<String, String>, filters: Filters, order_by_path: bool) {
-    println!("{}", "Bookmarked directories:".green().bold());
+fn list(bookmarks: &HashMap<String, String>, filters: Filters, order_by_path: bool, plain: bool) {
     let mut table = new_table();
     let mut bookmarks: Vec<_> = bookmarks.iter().collect();
     bookmarks.sort_by_key(|(name, path)| if order_by_path { *path } else { *name });
     if filters.any() {
         filter_list(&mut bookmarks, filters);
     }
+    if plain {
+        return bookmarks
+            .iter()
+            .for_each(|(name, path)| println!("{name}:{path}"));
+    }
+    println!("{}", "Bookmarked directories:".green().bold());
     bookmarks.iter().for_each(|(name, path)| {
         table.push_record([*name, *path]);
     });
@@ -249,11 +290,21 @@ fn print_table(table: Builder) {
     println!("{}", table.index().build().with(Style::rounded()));
 }
 
-fn get(bookmarks: &HashMap<String, String>, bookmark: &str) -> Result<()> {
+fn get(bookmarks: &HashMap<String, String>, bookmark: &str, failsafe: bool) -> Result<()> {
     let path = bookmarks
         .get(bookmark)
-        .with_context(|| format!("{} is not in bookmarks", bookmark))?;
-    print!("{path}");
+        .with_context(|| format!("{} is not in bookmarks", bookmark));
+    match path {
+        Ok(path) => print!("{path}"),
+        Err(err) => {
+            if failsafe {
+                let cwd =
+                    std::env::current_dir().context("could not get current working directory")?;
+                print!("{path}", path = cwd.display());
+            }
+            return Err(err);
+        }
+    }
     Ok(())
 }
 
