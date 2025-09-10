@@ -7,7 +7,7 @@ use std::{
     collections::HashMap,
     fs::OpenOptions,
     io::{self, Read},
-    panic::PanicInfo,
+    panic::PanicHookInfo,
     path::{Path, PathBuf},
 };
 use tabled::{builder::Builder, settings::Style};
@@ -194,7 +194,7 @@ fn mark(
             "bookmarked"
         }
     };
-    save_bookmarks(&bookmarks)?;
+    save_bookmarks(bookmarks)?;
     let prompt = if msg.contains("cancelled") {
         "Info:".yellow().bold()
     } else {
@@ -228,10 +228,7 @@ fn update() -> bool {
     io::stdin()
         .read_line(&mut res)
         .expect("failed to read from standard input");
-    match res.trim() {
-        "y" | "yes" => true,
-        _ => false,
-    }
+    matches!(res.trim(), "y" | "yes")
 }
 
 struct Filters {
@@ -312,12 +309,11 @@ fn remove(bookmarks: &mut HashMap<String, String>, bookmark: &str) -> Result<()>
     bookmarks
         .remove(bookmark)
         .with_context(|| format!("{} is not in bookmarks", bookmark))?;
-    save_bookmarks(&bookmarks)?;
+    save_bookmarks(bookmarks)?;
     println!(
-        "{} {} {}",
+        "{} {} removed from bookmarks",
         "Success:".green().bold(),
         bookmark.red(),
-        "removed from bookmarks"
     );
     Ok(())
 }
@@ -331,7 +327,8 @@ fn purge(bookmarks: &mut HashMap<String, String>) -> Result<()> {
         }
     }
     if to_remove.is_empty() {
-        return Ok(println!("{} Nothing to purge", "Info:".yellow().bold()));
+        println!("{} Nothing to purge", "Info:".yellow().bold());
+        return Ok(());
     }
     println!("{}", "Purged bookmarks:".red().bold());
     let mut table = new_table();
@@ -353,7 +350,7 @@ fn load_bookmarks() -> Result<HashMap<String, String>> {
     let mut raw = String::new();
     file.read_to_string(&mut raw)
         .context("failed to read $HOME/bookmarks.toml")?;
-    Ok(toml::from_str(&raw).context("failed to parse $HOME/.bookmarks.toml")?)
+    toml::from_str(&raw).context("failed to parse $HOME/.bookmarks.toml")
 }
 
 fn save_bookmarks(bookmarks: &HashMap<String, String>) -> Result<()> {
@@ -368,7 +365,7 @@ fn db_path() -> PathBuf {
     home
 }
 
-fn panic_hook(info: &PanicInfo) {
+fn panic_hook(info: &PanicHookInfo) {
     eprintln!("{} {}", "Error:".red().bold(), info)
 }
 
